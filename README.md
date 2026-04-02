@@ -1,6 +1,4 @@
-# fitness-progression-tracker
-
-# Guida Utente — Fitness Progression Tracker
+# Fitness Progression Tracker
 
 ## Panoramica
 
