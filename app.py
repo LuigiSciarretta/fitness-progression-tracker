@@ -745,7 +745,6 @@ elif selected == "🚀  Progression Engine":
         st.subheader("📜 Storico decisioni del motore")
         st.caption(
             "Ogni suggerimento generato viene salvato con il contesto completo. "
-            "Questo è il dataset che alimenterà il futuro modello AI."
         )
 
         ex_id_h, ex_label_h = _exercises_select("history_exercise")
