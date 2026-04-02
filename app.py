@@ -108,7 +108,8 @@ st.markdown("""
         .block-container {
             padding-left: 0.8rem !important;
             padding-right: 0.8rem !important;
-            padding-top: 0.8rem !important;
+            /* Keep first heading clear of Streamlit mobile top bar */
+            padding-top: max(3.8rem, env(safe-area-inset-top)) !important;
             max-width: 100% !important;
         }
 
@@ -226,15 +227,15 @@ if selected == "🏋️  Registra allenamento":
                 <div id="td" style="font-size:3rem;font-weight:bold;color:#667eea;margin:0.3rem 0;
                                      font-variant-numeric:tabular-nums;">00:00</div>
                 <div style="display:flex;gap:0.5rem;justify-content:center;flex-wrap:wrap;">
-                    <button onclick="startT(60)" style="padding:0.7rem 1.2rem;border-radius:8px;border:none;
+                    <button onclick="startT(60)" style="min-width:4.3rem;padding:0.65rem 0.9rem;border-radius:8px;border:none;
                         background:#667eea;color:white;font-size:1rem;font-weight:600;cursor:pointer;">1:00</button>
-                    <button onclick="startT(90)" style="padding:0.7rem 1.2rem;border-radius:8px;border:none;
+                    <button onclick="startT(90)" style="min-width:4.3rem;padding:0.65rem 0.9rem;border-radius:8px;border:none;
                         background:#667eea;color:white;font-size:1rem;font-weight:600;cursor:pointer;">1:30</button>
-                    <button onclick="startT(120)" style="padding:0.7rem 1.2rem;border-radius:8px;border:none;
+                    <button onclick="startT(120)" style="min-width:4.3rem;padding:0.65rem 0.9rem;border-radius:8px;border:none;
                         background:#667eea;color:white;font-size:1rem;font-weight:600;cursor:pointer;">2:00</button>
-                    <button onclick="startT(180)" style="padding:0.7rem 1.2rem;border-radius:8px;border:none;
+                    <button onclick="startT(180)" style="min-width:4.3rem;padding:0.65rem 0.9rem;border-radius:8px;border:none;
                         background:#764ba2;color:white;font-size:1rem;font-weight:600;cursor:pointer;">3:00</button>
-                    <button onclick="resetT()" style="padding:0.7rem 1.2rem;border-radius:8px;border:none;
+                    <button onclick="resetT()" style="min-width:4.3rem;padding:0.65rem 0.9rem;border-radius:8px;border:none;
                         background:#e74c3c;color:white;font-size:1rem;font-weight:600;cursor:pointer;">⏹</button>
                 </div>
             </div>
@@ -250,7 +251,7 @@ if selected == "🏋️  Registra allenamento":
                 d.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
                 d.style.color=rm<=5&&rm>0?'#e74c3c':'#667eea';}
             </script>
-            """, height=130)
+            """, height=190)
 
         st.markdown("---")
         st.subheader("Aggiungi serie")
