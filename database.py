@@ -2,9 +2,15 @@
 
 import psycopg2
 import psycopg2.extras
+from psycopg2.pool import SimpleConnectionPool
 import streamlit as st
 from datetime import date
 from contextlib import contextmanager
+from threading import Lock
+
+
+_POOL_LOCK = Lock()
+_POOLS: dict[str, SimpleConnectionPool] = {}
 
 
 def _get_db_url() -> str:
@@ -12,10 +18,23 @@ def _get_db_url() -> str:
     return st.secrets["database"]["url"]
 
 
+def _get_pool() -> SimpleConnectionPool:
+    """Get or create a connection pool for the configured DB URL."""
+    db_url = _get_db_url()
+    with _POOL_LOCK:
+        pool = _POOLS.get(db_url)
+        if pool is None:
+            # Keep the pool conservative for hosted free-tier environments.
+            pool = SimpleConnectionPool(minconn=1, maxconn=8, dsn=db_url)
+            _POOLS[db_url] = pool
+    return pool
+
+
 @contextmanager
 def get_connection():
     """Context manager for database connections."""
-    conn = psycopg2.connect(_get_db_url())
+    pool = _get_pool()
+    conn = pool.getconn()
     try:
         yield conn
         conn.commit()
@@ -23,7 +42,7 @@ def get_connection():
         conn.rollback()
         raise
     finally:
-        conn.close()
+        pool.putconn(conn)
 
 
 def _fetchall(conn, query: str, params: tuple = ()) -> list[dict]:
