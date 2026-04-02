@@ -1,6 +1,7 @@
 """Fitness Tracker (multi-utente) — Track your gym progress."""
 
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 import plotly.express as px
 from datetime import date
@@ -14,8 +15,8 @@ import progression_engine as pe
 st.set_page_config(
     page_title="Fitness Tracker",
     page_icon="🏋️",
-    layout="wide" if auth.is_authenticated() else "centered",
-    initial_sidebar_state="expanded" if auth.is_authenticated() else "collapsed",
+    layout="centered",
+    initial_sidebar_state="auto",
 )
 
 # ─── Database init ────────────────────────────────────────────────────────────
@@ -89,6 +90,62 @@ st.markdown("""
     /* Header styling */
     h1 { color: #1a1a2e; }
     h2 { border-bottom: 3px solid #667eea; padding-bottom: 0.3rem; }
+
+    /* ── Mobile Responsive ──────────────────────────── */
+    @media (max-width: 768px) {
+        /* Stack all column layouts vertically */
+        [data-testid="stHorizontalBlock"] {
+            flex-wrap: wrap !important;
+            gap: 0.2rem !important;
+        }
+        [data-testid="stHorizontalBlock"] > div {
+            flex: 1 1 100% !important;
+            min-width: 100% !important;
+            width: 100% !important;
+        }
+
+        /* Tighter padding */
+        .block-container {
+            padding-left: 0.8rem !important;
+            padding-right: 0.8rem !important;
+            padding-top: 0.8rem !important;
+            max-width: 100% !important;
+        }
+
+        /* Bigger touch targets */
+        input[type="number"],
+        input[type="text"],
+        input[type="password"],
+        textarea {
+            font-size: 1.1rem !important;
+            min-height: 2.8rem !important;
+        }
+        button {
+            min-height: 3rem !important;
+            font-size: 1rem !important;
+        }
+
+        /* Metric boxes spacing */
+        [data-testid="stMetric"] {
+            margin-bottom: 0.5rem !important;
+        }
+
+        /* Radio nav larger taps */
+        [data-testid="stSidebar"] .stRadio label {
+            font-size: 1.2rem !important;
+            padding: 0.6rem 0 !important;
+        }
+
+        /* Headers smaller for mobile */
+        h1 { font-size: 1.5rem !important; }
+        h2 { font-size: 1.25rem !important; }
+
+        /* Full width controls */
+        [data-testid="stSelectbox"],
+        [data-testid="stNumberInput"] {
+            width: 100% !important;
+        }
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -96,7 +153,11 @@ st.markdown("""
 
 with st.sidebar:
     st.markdown("# 🏋️ Fitness Tracker")
-    st.markdown(f"👤 **{user_name}** (`{st.session_state['username']}`)")
+    st.markdown(
+        f'<p style="color: #ffffff; font-size: 1.05rem; font-weight: 600;">'
+        f'👤 {user_name} <span style="opacity: 0.85;">({st.session_state["username"]})</span></p>',
+        unsafe_allow_html=True,
+    )
     st.markdown("---")
 
     selected = st.radio(
@@ -107,10 +168,14 @@ with st.sidebar:
     )
 
     st.markdown("---")
-    if st.button("🚪 Logout", use_container_width=True):
+    if st.button("🚪 Logout", use_container_width=True, type="primary"):
         auth.logout()
         st.rerun()
-    st.caption("Fitness Tracker v1.0")
+    st.markdown(
+        '<p style="color: #ffffff; opacity: 0.7; font-size: 0.8rem; text-align: center;">'
+        'Fitness Tracker v1.0</p>',
+        unsafe_allow_html=True,
+    )
 
 # ─── Helper ──────────────────────────────────────────────────────────────────
 
@@ -154,25 +219,56 @@ if selected == "🏋️  Registra allenamento":
                     {f'<br><br>🎯 <strong>{suggestion.suggested_weight_kg:.1f} kg × {suggestion.suggested_reps_target} reps</strong>' if suggestion.suggested_weight_kg else ''}
                 </div>""", unsafe_allow_html=True)
 
+        # ── Rest timer ──
+        with st.expander("⏱️ Timer recupero", expanded=False):
+            components.html("""
+            <div style="text-align:center;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">
+                <div id="td" style="font-size:3rem;font-weight:bold;color:#667eea;margin:0.3rem 0;
+                                     font-variant-numeric:tabular-nums;">00:00</div>
+                <div style="display:flex;gap:0.5rem;justify-content:center;flex-wrap:wrap;">
+                    <button onclick="startT(60)" style="padding:0.7rem 1.2rem;border-radius:8px;border:none;
+                        background:#667eea;color:white;font-size:1rem;font-weight:600;cursor:pointer;">1:00</button>
+                    <button onclick="startT(90)" style="padding:0.7rem 1.2rem;border-radius:8px;border:none;
+                        background:#667eea;color:white;font-size:1rem;font-weight:600;cursor:pointer;">1:30</button>
+                    <button onclick="startT(120)" style="padding:0.7rem 1.2rem;border-radius:8px;border:none;
+                        background:#667eea;color:white;font-size:1rem;font-weight:600;cursor:pointer;">2:00</button>
+                    <button onclick="startT(180)" style="padding:0.7rem 1.2rem;border-radius:8px;border:none;
+                        background:#764ba2;color:white;font-size:1rem;font-weight:600;cursor:pointer;">3:00</button>
+                    <button onclick="resetT()" style="padding:0.7rem 1.2rem;border-radius:8px;border:none;
+                        background:#e74c3c;color:white;font-size:1rem;font-weight:600;cursor:pointer;">⏹</button>
+                </div>
+            </div>
+            <script>
+            let iv,rm=0;
+            function startT(s){clearInterval(iv);rm=s;upd();iv=setInterval(()=>{rm--;upd();
+                if(rm<=0){clearInterval(iv);try{navigator.vibrate([200,100,200])}catch(e){}
+                try{let ac=new(window.AudioContext||window.webkitAudioContext)();let o=ac.createOscillator();
+                o.frequency.value=800;o.connect(ac.destination);o.start();setTimeout(()=>o.stop(),300);}catch(e){}
+                document.getElementById('td').style.color='#4CAF50';}},1000);}
+            function resetT(){clearInterval(iv);rm=0;upd();}
+            function upd(){let m=Math.floor(rm/60),s=rm%60;let d=document.getElementById('td');
+                d.textContent=String(m).padStart(2,'0')+':'+String(s).padStart(2,'0');
+                d.style.color=rm<=5&&rm>0?'#e74c3c':'#667eea';}
+            </script>
+            """, height=130)
+
         st.markdown("---")
         st.subheader("Aggiungi serie")
 
-        num_sets = st.number_input("Numero di serie da aggiungere", min_value=1,
-                                   max_value=10, value=3, key="num_sets")
+        # Pre-fill weight from progression suggestion
+        default_kg = round(suggestion.suggested_weight_kg, 1) if (suggestion and suggestion.suggested_weight_kg) else 0.0
 
-        cols_header = st.columns([1, 2, 2])
-        cols_header[0].markdown("**Serie**")
-        cols_header[1].markdown("**Kg**")
-        cols_header[2].markdown("**Reps**")
+        num_sets = st.number_input("Numero di serie", min_value=1,
+                                   max_value=10, value=3, key="num_sets")
 
         set_data = []
         for i in range(int(num_sets)):
-            cols = st.columns([1, 2, 2])
-            cols[0].markdown(f"### {i+1}")
-            w = cols[1].number_input("Kg", min_value=0.0, step=0.5, value=0.0,
-                                     key=f"w_{i}", label_visibility="collapsed")
-            r = cols[2].number_input("Reps", min_value=0, step=1, value=0,
-                                     key=f"r_{i}", label_visibility="collapsed")
+            st.markdown(f"**Serie {i+1}**")
+            c1, c2 = st.columns(2)
+            w = c1.number_input("Kg", min_value=0.0, step=0.5, value=default_kg,
+                                key=f"w_{i}")
+            r = c2.number_input("Reps", min_value=0, step=1, value=0,
+                                key=f"r_{i}")
             set_data.append((w, r))
 
         notes = st.text_area("📝 Note (opzionale)", key="log_notes",
@@ -396,6 +492,93 @@ elif selected == "📈  Progressi":
                                         xanchor="right", x=1),
                         )
                         st.plotly_chart(fig3, use_container_width=True)
+
+                st.markdown("---")
+
+                # Chart 4 & 5 side by side: 1RM stimato + Peso medio vs max
+                col_chart4, col_chart5 = st.columns(2)
+
+                # 1RM stimato (Epley: 1RM = w * (1 + r/30))
+                pdf["estimated_1rm"] = pdf["max_weight"] * (1 + pdf["max_reps"] / 30)
+
+                with col_chart4:
+                    fig4 = px.line(
+                        pdf, x="workout_date", y="estimated_1rm",
+                        markers=True,
+                        title="1RM stimato — Formula di Epley",
+                        labels={"workout_date": "Data", "estimated_1rm": "1RM (kg)"},
+                    )
+                    fig4.update_traces(line=dict(width=3, color="#e74c3c"), marker=dict(size=8))
+                    fig4.update_layout(
+                        height=350, template="plotly_white",
+                        xaxis=dict(rangeselector=_range_buttons),
+                    )
+                    st.plotly_chart(fig4, use_container_width=True)
+
+                with col_chart5:
+                    # Peso medio per serie vs peso max
+                    if raw_logs:
+                        rdf_avg = rdf.groupby("workout_date").agg(
+                            peso_medio=("weight_kg", "mean"),
+                            peso_max=("weight_kg", "max"),
+                        ).reset_index()
+                        import plotly.graph_objects as go
+                        fig5 = go.Figure()
+                        fig5.add_trace(go.Scatter(
+                            x=rdf_avg["workout_date"], y=rdf_avg["peso_max"],
+                            mode="lines+markers", name="Peso max",
+                            line=dict(width=3, color="#667eea"), marker=dict(size=8),
+                        ))
+                        fig5.add_trace(go.Scatter(
+                            x=rdf_avg["workout_date"], y=rdf_avg["peso_medio"],
+                            mode="lines+markers", name="Peso medio",
+                            line=dict(width=2, color="#2ecc71", dash="dash"), marker=dict(size=6),
+                        ))
+                        fig5.update_layout(
+                            title="Peso medio vs Peso max per sessione",
+                            height=350, template="plotly_white",
+                            xaxis=dict(title="Data", rangeselector=_range_buttons),
+                            yaxis=dict(title="Kg"),
+                            legend=dict(orientation="h", yanchor="bottom", y=1.02,
+                                        xanchor="right", x=1),
+                        )
+                        st.plotly_chart(fig5, use_container_width=True)
+
+                # Chart 6 & 7 side by side: Tonnellaggio cumulativo + Distribuzione reps
+                col_chart6, col_chart7 = st.columns(2)
+
+                with col_chart6:
+                    pdf_sorted = pdf.sort_values("workout_date")
+                    pdf_sorted["volume_cumulativo"] = pdf_sorted["total_volume"].cumsum()
+                    fig6 = px.area(
+                        pdf_sorted, x="workout_date", y="volume_cumulativo",
+                        title="Tonnellaggio cumulativo",
+                        labels={"workout_date": "Data", "volume_cumulativo": "Volume (kg)"},
+                    )
+                    fig6.update_traces(
+                        line=dict(width=2, color="#f39c12"),
+                        fillcolor="rgba(243, 156, 18, 0.2)",
+                    )
+                    fig6.update_layout(
+                        height=350, template="plotly_white",
+                        xaxis=dict(rangeselector=_range_buttons),
+                    )
+                    st.plotly_chart(fig6, use_container_width=True)
+
+                with col_chart7:
+                    if raw_logs and not rdf.empty:
+                        fig7 = px.histogram(
+                            rdf, x="reps", nbins=max(int(rdf["reps"].max() - rdf["reps"].min() + 1), 5),
+                            title="Distribuzione ripetizioni",
+                            labels={"reps": "Reps", "count": "Frequenza"},
+                            color_discrete_sequence=["#9b59b6"],
+                        )
+                        fig7.update_layout(
+                            height=350, template="plotly_white",
+                            yaxis=dict(title="Frequenza"),
+                            bargap=0.1,
+                        )
+                        st.plotly_chart(fig7, use_container_width=True)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
