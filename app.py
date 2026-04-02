@@ -21,7 +21,10 @@ st.set_page_config(
 
 # ─── Database init ────────────────────────────────────────────────────────────
 
-db.init_db()
+# Initialize schema once per browser session to avoid running DDL on every rerun.
+if not st.session_state.get("_db_initialized", False):
+    db.init_db()
+    st.session_state["_db_initialized"] = True
 
 # ─── Authentication gate ─────────────────────────────────────────────────────
 
@@ -33,7 +36,9 @@ user_id = auth.get_current_user_id()
 user_name = auth.get_current_user_name()
 
 # Seed default exercises for new users
-db.seed_default_exercises_for_user(user_id)
+if st.session_state.get("_seeded_exercises_user_id") != user_id:
+    db.seed_default_exercises_for_user(user_id)
+    st.session_state["_seeded_exercises_user_id"] = user_id
 
 # ─── Custom CSS ───────────────────────────────────────────────────────────────
 
@@ -262,20 +267,22 @@ if selected == "🏋️  Registra allenamento":
         num_sets = st.number_input("Numero di serie", min_value=1,
                                    max_value=10, value=3, key="num_sets")
 
-        set_data = []
-        for i in range(int(num_sets)):
-            st.markdown(f"**Serie {i+1}**")
-            c1, c2 = st.columns(2)
-            w = c1.number_input("Kg", min_value=0.0, step=0.5, value=default_kg,
-                                key=f"w_{i}")
-            r = c2.number_input("Reps", min_value=0, step=1, value=0,
-                                key=f"r_{i}")
-            set_data.append((w, r))
+        with st.form("log_sets_form"):
+            set_data = []
+            for i in range(int(num_sets)):
+                st.markdown(f"**Serie {i+1}**")
+                c1, c2 = st.columns(2)
+                w = c1.number_input("Kg", min_value=0.0, step=0.5, value=default_kg,
+                                    key=f"w_{i}")
+                r = c2.number_input("Reps", min_value=0, step=1, value=0,
+                                    key=f"r_{i}")
+                set_data.append((w, r))
 
-        notes = st.text_area("📝 Note (opzionale)", key="log_notes",
-                             placeholder="Es: sentito fastidio alla spalla...")
+            notes = st.text_area("📝 Note (opzionale)", key="log_notes",
+                                 placeholder="Es: sentito fastidio alla spalla...")
+            save_sets = st.form_submit_button("💾 Salva serie", type="primary", use_container_width=True)
 
-        if st.button("💾 Salva serie", type="primary", use_container_width=True):
+        if save_sets:
             saved = 0
             for idx, (w, r) in enumerate(set_data, start=1):
                 if r > 0 and w > 0:
