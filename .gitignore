@@ -208,5 +208,4 @@ __marimo__/
 
 # personal
 .streamlit/secrets.toml
-.streamlit/secrets.toml.example
 *.pyc
